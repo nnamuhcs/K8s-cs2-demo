@@ -2,6 +2,14 @@
 set -euo pipefail
 
 IMAGE_NAME="cs2-skin-ai:latest"
+MODE="${1:-pv}"
+
+if [[ "${MODE}" != "pv" && "${MODE}" != "no-pv" ]]; then
+  echo "Usage: bash scripts/deploy_local_k8s.sh [pv|no-pv]"
+  echo "  pv    : persistent mode using PVC (default)"
+  echo "  no-pv : ephemeral mode using emptyDir"
+  exit 1
+fi
 
 if ! command -v kubectl >/dev/null 2>&1; then
   echo "kubectl is required"
@@ -24,13 +32,18 @@ if command -v kind >/dev/null 2>&1; then
   fi
 fi
 
-echo "Applying Kubernetes manifests..."
-kubectl apply -f k8s/pvc.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/deployment.yaml
+echo "Applying Kubernetes manifests (mode=${MODE})..."
 kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/configmap.yaml
+
+if [[ "${MODE}" == "pv" ]]; then
+  kubectl apply -f k8s/pvc.yaml
+  kubectl apply -f k8s/deployment.yaml
+else
+  kubectl apply -f k8s/deployment-no-pv.yaml
+fi
 
 echo "Waiting for deployment rollout..."
 kubectl rollout status deployment/cs2-skin-ai --timeout=120s
 
-echo "Deployment ready. Port-forward with: kubectl port-forward svc/cs2-skin-ai 8000:80"
+echo "Deployment ready (${MODE}). Port-forward with: kubectl port-forward svc/cs2-skin-ai 8000:80"

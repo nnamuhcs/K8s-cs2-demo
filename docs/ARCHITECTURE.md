@@ -59,9 +59,18 @@ flowchart LR
 Use `k8s/deployment-no-pv.yaml` instead of `k8s/deployment.yaml`.
 
 ```bash
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/deployment-no-pv.yaml
-kubectl apply -f k8s/service.yaml
+bash scripts/deploy_local_k8s.sh no-pv
+kubectl port-forward svc/cs2-skin-ai 8000:80
+```
+
+## One Script, Two Modes
+
+```bash
+# Persistent mode (default, PVC-backed)
+bash scripts/deploy_local_k8s.sh
+
+# Ephemeral mode (no PVC)
+bash scripts/deploy_local_k8s.sh no-pv
 ```
 
 ## Verification Commands

@@ -42,21 +42,24 @@ Open [http://localhost:8000](http://localhost:8000)
 - `GET /audit/snapshots?limit=50` - recent rows with source links
 - `GET /audit/tracked-universe` - why these 25 skins are tracked
 
-## Local K8s
+## Local K8s (PVC, Persistent)
 ```bash
 bash scripts/deploy_local_k8s.sh
+kubectl port-forward svc/cs2-skin-ai 8000:80
+```
+
+## Local K8s (No-PV, Ephemeral)
+```bash
+bash scripts/deploy_local_k8s.sh no-pv
 kubectl port-forward svc/cs2-skin-ai 8000:80
 ```
 
 ## Architecture Doc (Slides)
 - `/Users/verve/Documents/demo-cs2/docs/ARCHITECTURE.md`
 
-## Optional No-PV Mode (Ephemeral Data)
-```bash
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/deployment-no-pv.yaml
-kubectl apply -f k8s/service.yaml
-```
+`deploy_local_k8s.sh` supports mode argument:
+- `pv` (default): uses `k8s/pvc.yaml` + `k8s/deployment.yaml`
+- `no-pv`: uses `k8s/deployment-no-pv.yaml` (`emptyDir`)
 
 ## Providers / Env
 Default live mode:
