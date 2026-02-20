@@ -94,9 +94,9 @@ function drawLineChart(points, highlightPointIndex = null) {
 
   chartGeom = { padLeft, padRight, padTop, padBottom, plotW, plotH, min, max, span, stepX, width, height };
 
-  ctx.strokeStyle = "#364458";
+  ctx.strokeStyle = "rgba(255,255,255,0.06)";
   ctx.lineWidth = 1;
-  ctx.fillStyle = "#b8c8da";
+  ctx.fillStyle = "#a1a1aa";
   ctx.font = `${Math.round(16 * scale)}px ${CHART_FONT_STACK}`;
 
   for (let i = 0; i <= 4; i += 1) {
@@ -128,13 +128,13 @@ function drawLineChart(points, highlightPointIndex = null) {
     ctx.fillText(label, safeX, height - 38);
   });
 
-  ctx.fillStyle = "#a7b8cb";
+  ctx.fillStyle = "#a1a1aa";
   ctx.font = `${Math.round(14 * scale)}px ${CHART_FONT_STACK}`;
   ctx.fillText("Price (USD)", 12, 24);
   ctx.fillText("Date", width - 52, height - 12);
 
-  ctx.strokeStyle = "#86dcff";
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 1.8;
   ctx.beginPath();
   points.forEach((p, i) => {
     const x = padLeft + stepX * i;
@@ -144,12 +144,12 @@ function drawLineChart(points, highlightPointIndex = null) {
   });
   ctx.stroke();
 
-  ctx.fillStyle = "#86dcff";
+  ctx.fillStyle = "#38bdf8";
   points.forEach((p, i) => {
     const x = padLeft + stepX * i;
     const y = padTop + ((max - p.price_usd) / span) * plotH;
     ctx.beginPath();
-    ctx.arc(x, y, 3.2, 0, Math.PI * 2);
+    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
     ctx.fill();
   });
 
@@ -158,14 +158,14 @@ function drawLineChart(points, highlightPointIndex = null) {
     const x = padLeft + stepX * highlightPointIndex;
     const y = padTop + ((max - hp.price_usd) / span) * plotH;
 
-    ctx.strokeStyle = "rgba(134,220,255,0.45)";
+    ctx.strokeStyle = "rgba(56,189,248,0.3)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(x, padTop);
     ctx.lineTo(x, height - padBottom);
     ctx.stroke();
 
-    ctx.fillStyle = "#d3f6ff";
+    ctx.fillStyle = "#7dd3fc";
     ctx.beginPath();
     ctx.arc(x, y, 5.4, 0, Math.PI * 2);
     ctx.fill();
@@ -207,9 +207,9 @@ function drawSimChart(points, highlightPointIndex = null) {
   const span = Math.max(0.01, max - min);
   simGeom = { padLeft, padRight, padTop, padBottom, plotW, plotH, min, max, span, stepX, width, height };
 
-  ctx.strokeStyle = "#364458";
+  ctx.strokeStyle = "rgba(255,255,255,0.06)";
   ctx.lineWidth = 1;
-  ctx.fillStyle = "#b8c8da";
+  ctx.fillStyle = "#a1a1aa";
   ctx.font = `14px ${CHART_FONT_STACK}`;
 
   for (let i = 0; i <= 4; i += 1) {
@@ -235,7 +235,7 @@ function drawSimChart(points, highlightPointIndex = null) {
 
   const drawSeries = (color, getY) => {
     ctx.strokeStyle = color;
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 1.8;
     ctx.beginPath();
     points.forEach((p, i) => {
       const x = padLeft + stepX * i;
@@ -248,7 +248,7 @@ function drawSimChart(points, highlightPointIndex = null) {
 
   const yAi = (p) => padTop + ((max - Number(p.equity)) / span) * plotH;
   const aiUp = Number(points[points.length - 1].equity) >= Number(points[0].equity);
-  const aiColor = aiUp ? "#31e3a5" : "#ff7d92";
+  const aiColor = aiUp ? "#34d399" : "#f87171";
   drawSeries(aiColor, yAi);
 
   const endX = padLeft + stepX * (points.length - 1);
@@ -266,13 +266,13 @@ function drawSimChart(points, highlightPointIndex = null) {
     const hp = points[highlightPointIndex];
     const x = padLeft + stepX * highlightPointIndex;
     const y = yAi(hp);
-    ctx.strokeStyle = "rgba(138, 245, 205, 0.42)";
+    ctx.strokeStyle = "rgba(52, 211, 153, 0.3)";
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(x, padTop);
     ctx.lineTo(x, height - padBottom);
     ctx.stroke();
-    ctx.fillStyle = "#dcfff2";
+    ctx.fillStyle = "#6ee7b7";
     ctx.beginPath();
     ctx.arc(x, y, 5.4, 0, Math.PI * 2);
     ctx.fill();

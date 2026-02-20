@@ -9,6 +9,12 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/web/styles.css" />
   </head>
+  <body>
+    <div class="bg-grid"></div>
+    <main class="terminal">
+      <header class="topbar">
+        <div>
+          <h1>CS2 Skin AI Intelligence</h1>
           <p>AI-powered market intelligence terminal for professional CS2 skin investors.</p>
         </div>
         <div class="actions">
@@ -117,8 +123,10 @@
               <tr class="pick-row" data-skin-id="{{ r.skin_id }}" data-skin-name="{{ r.skin_name }}">
                 <td><span class="rank-badge">{{ loop.index }}</span></td>
                 <td class="skin-cell">
-                  <img src="{{ r.skin_image_url or '/web/placeholder.svg' }}" alt="{{ r.skin_name }}" loading="lazy" />
-                  <div class="name">{{ r.skin_name }}</div>
+                  <div class="skin-cell-inner">
+                    <img src="{{ r.skin_image_url or '/web/placeholder.svg' }}" alt="{{ r.skin_name }}" loading="lazy" />
+                    <div class="name">{{ r.skin_name }}</div>
+                  </div>
                 </td>
                 <td>{{ r.score }}</td>
                 <td>${{ r.latest_price_usd }}</td>
