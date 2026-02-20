@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>K8s Monitoring - CS2 Skin AI Intelligence</title>
+    <link rel="stylesheet" href="/web/styles.css" />
+  </head>
+  <body>
+    <div class="bg-grid"></div>
+    <main class="terminal">
+      <header class="topbar">
+        <div>
+          <h1>K8s Monitoring</h1>
+          <p>Live Kubernetes cluster status — proof this demo runs on real pods.</p>
+        </div>
+        <div class="actions">
+          <a class="button-link" href="/web/architecture.html">Architecture</a>
+          <a class="button-link" href="/">Dashboard</a>
+        </div>
+      </header>
+
+      <div class="monitor-toolbar" style="margin-top:12px;">
+        <label>
+          <input type="checkbox" id="auto-refresh" checked />
+          <span class="status-dot live" id="refresh-dot"></span>
+          Auto-refresh (5s)
+        </label>
+        <span class="last-refresh" id="last-refresh"></span>
+        <button id="refresh-now" class="secondary" style="padding:7px 12px;font-size:0.85rem;">Refresh Now</button>
+      </div>
+
+      <div id="monitor-error" class="monitor-error" hidden></div>
+
+      <section id="kpi-section" class="monitor-kpis"></section>
+
+      <section class="panel monitor-section">
+        <div class="panel-head"><h2>Pods</h2></div>
+        <div class="table-scroll">
+          <table class="resource-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Namespace</th>
+                <th>Status</th>
+                <th>Ready</th>
+                <th>Restarts</th>
+                <th>Node</th>
+                <th>Age</th>
+              </tr>
+            </thead>
+            <tbody id="pods-body"><tr><td colspan="7" class="monitor-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel monitor-section">
+        <div class="panel-head"><h2>Services</h2></div>
+        <div class="table-scroll">
+          <table class="resource-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Namespace</th>
+                <th>Type</th>
+                <th>Cluster IP</th>
+                <th>Ports</th>
+                <th>Age</th>
+              </tr>
+            </thead>
+            <tbody id="svc-body"><tr><td colspan="6" class="monitor-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel monitor-section">
+        <div class="panel-head"><h2>Deployments</h2></div>
+        <div class="table-scroll">
+          <table class="resource-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Namespace</th>
+                <th>Ready</th>
+                <th>Up-to-date</th>
+                <th>Available</th>
+                <th>Age</th>
+              </tr>
+            </thead>
+            <tbody id="deploy-body"><tr><td colspan="6" class="monitor-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel monitor-section">
+        <div class="panel-head"><h2>Nodes</h2></div>
+        <div class="table-scroll">
+          <table class="resource-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Roles</th>
+                <th>Version</th>
+                <th>OS</th>
+                <th>Arch</th>
+                <th>Age</th>
+              </tr>
+            </thead>
+            <tbody id="nodes-body"><tr><td colspan="7" class="monitor-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel monitor-section">
+        <div class="panel-head"><h2>Namespaces</h2></div>
+        <div class="table-scroll">
+          <table class="resource-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Status</th>
+                <th>Age</th>
+              </tr>
+            </thead>
+            <tbody id="ns-body"><tr><td colspan="3" class="monitor-empty">Loading…</td></tr></tbody>
+          </table>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <p><strong>Schumann</strong> | AI & Kubernetes Demo | CS2 Skin AI Intelligence</p>
+      </footer>
+    </main>
+
+    <script>
+    (function () {
+      const autoBox = document.getElementById('auto-refresh');
+      const dot = document.getElementById('refresh-dot');
+      const lastEl = document.getElementById('last-refresh');
+      const errorEl = document.getElementById('monitor-error');
+      let timer = null;
+
+      function statusClass(s) {
+        const sl = (s || '').toLowerCase();
+        if (sl === 'running' || sl === 'ready' || sl === 'active') return 'running';
+        if (sl === 'pending' || sl === 'containercreating') return 'pending';
+        if (sl === 'succeeded' || sl === 'completed') return 'succeeded';
+        if (sl === 'failed' || sl === 'crashloopbackoff' || sl === 'error' || sl === 'notready') return 'failed';
+        return 'active';
+      }
+
+      function esc(t) {
+        const d = document.createElement('span');
+        d.textContent = t;
+        return d.innerHTML;
+      }
+
+      function renderKPIs(data) {
+        const sec = document.getElementById('kpi-section');
+        const pods = data.pods || [];
+        const running = pods.filter(p => (p.status || '').toLowerCase() === 'running').length;
+        const total = pods.length;
+        const svcs = (data.services || []).length;
+        const deploys = data.deployments || [];
+        const nodes = (data.nodes || []).length;
+        const allReady = deploys.every(d => d.ready === d.desired);
+        sec.innerHTML = `
+          <div class="monitor-kpi ${running === total && total > 0 ? 'healthy' : 'warn'}">
+            <small>Pods Running</small><strong>${running} / ${total}</strong>
+          </div>
+          <div class="monitor-kpi"><small>Services</small><strong>${svcs}</strong></div>
+          <div class="monitor-kpi ${allReady ? 'healthy' : 'warn'}">
+            <small>Deployments</small><strong>${deploys.length}</strong>
+          </div>
+          <div class="monitor-kpi"><small>Nodes</small><strong>${nodes}</strong></div>
+          <div class="monitor-kpi"><small>Namespaces</small><strong>${(data.namespaces || []).length}</strong></div>
+        `;
+      }
+
+      function renderTable(id, rows, cols) {
+        const body = document.getElementById(id);
+        if (!rows || rows.length === 0) {
+          body.innerHTML = `<tr><td colspan="${cols.length}" class="monitor-empty">No resources found</td></tr>`;
+          return;
+        }
+        body.innerHTML = rows.map(r => {
+          return '<tr>' + cols.map(c => {
+            const val = r[c.key] != null ? String(r[c.key]) : '—';
+            if (c.badge) return `<td><span class="status-badge ${statusClass(val)}">${esc(val)}</span></td>`;
+            return `<td>${esc(val)}</td>`;
+          }).join('') + '</tr>';
+        }).join('');
+      }
+
+      async function refresh() {
+        try {
+          const res = await fetch('/k8s/info');
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const data = await res.json();
+          errorEl.hidden = true;
+
+          renderKPIs(data);
+          renderTable('pods-body', data.pods, [
+            { key: 'name' }, { key: 'namespace' }, { key: 'status', badge: true },
+            { key: 'ready' }, { key: 'restarts' }, { key: 'node' }, { key: 'age' }
+          ]);
+          renderTable('svc-body', data.services, [
+            { key: 'name' }, { key: 'namespace' }, { key: 'type' },
+            { key: 'cluster_ip' }, { key: 'ports' }, { key: 'age' }
+          ]);
+          renderTable('deploy-body', data.deployments, [
+            { key: 'name' }, { key: 'namespace' }, { key: 'ready' },
+            { key: 'up_to_date' }, { key: 'available' }, { key: 'age' }
+          ]);
+          renderTable('nodes-body', data.nodes, [
+            { key: 'name' }, { key: 'status', badge: true }, { key: 'roles' },
+            { key: 'version' }, { key: 'os' }, { key: 'arch' }, { key: 'age' }
+          ]);
+          renderTable('ns-body', data.namespaces, [
+            { key: 'name' }, { key: 'status', badge: true }, { key: 'age' }
+          ]);
+
+          lastEl.textContent = 'Last refresh: ' + new Date().toLocaleTimeString();
+        } catch (e) {
+          errorEl.hidden = false;
+          errorEl.textContent = 'Failed to fetch K8s data: ' + e.message + '. Is kubectl configured?';
+        }
+      }
+
+      function startTimer() {
+        stopTimer();
+        timer = setInterval(refresh, 5000);
+        dot.className = 'status-dot live';
+      }
+      function stopTimer() {
+        if (timer) clearInterval(timer);
+        timer = null;
+        dot.className = 'status-dot off';
+      }
+
+      autoBox.addEventListener('change', function () {
+        if (this.checked) startTimer(); else stopTimer();
+      });
+      document.getElementById('refresh-now').addEventListener('click', refresh);
+
+      refresh();
+      startTimer();
+    })();
+    </script>
+  </body>
+</html>

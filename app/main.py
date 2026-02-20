@@ -1,6 +1,7 @@
 from datetime import date
 from pathlib import Path
 import shutil
+import subprocess
 import urllib.parse
 from typing import Union
 
@@ -303,4 +304,120 @@ def audit_tracked_universe(db: Session = Depends(get_db)) -> dict[str, object]:
             }
             for name in tracked_names
         ],
+    }
+
+
+# ── K8s Monitoring ─────────────────────────────────────────
+
+def _run_kubectl(args: list[str], timeout: int = 5) -> str:
+    try:
+        result = subprocess.run(
+            ["kubectl"] + args,
+            capture_output=True, text=True, timeout=timeout,
+        )
+        return result.stdout.strip()
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return ""
+
+
+def _parse_kubectl_lines(raw: str) -> list[dict[str, str]]:
+    if not raw:
+        return []
+    lines = raw.strip().splitlines()
+    if len(lines) < 2:
+        return []
+    headers = lines[0].split()
+    rows = []
+    for line in lines[1:]:
+        parts = line.split(None, len(headers) - 1)
+        row = {}
+        for i, h in enumerate(headers):
+            row[h] = parts[i] if i < len(parts) else ""
+        rows.append(row)
+    return rows
+
+
+@app.get("/k8s/info")
+def k8s_info() -> dict[str, object]:
+    pods_raw = _run_kubectl(["get", "pods", "--all-namespaces", "--no-headers",
+                             "-o", "custom-columns=NAME:.metadata.name,NAMESPACE:.metadata.namespace,"
+                             "STATUS:.status.phase,READY:.status.conditions[?(@.type=='Ready')].status,"
+                             "RESTARTS:.status.containerStatuses[0].restartCount,"
+                             "NODE:.spec.nodeName,AGE:.metadata.creationTimestamp"])
+    pods = []
+    for line in (pods_raw or "").strip().splitlines():
+        parts = line.split(None, 6)
+        if len(parts) >= 7:
+            age_raw = parts[6]
+            pods.append({
+                "name": parts[0], "namespace": parts[1], "status": parts[2],
+                "ready": parts[3], "restarts": parts[4], "node": parts[5], "age": age_raw,
+            })
+
+    svc_raw = _run_kubectl(["get", "svc", "--all-namespaces", "--no-headers",
+                            "-o", "custom-columns=NAME:.metadata.name,NAMESPACE:.metadata.namespace,"
+                            "TYPE:.spec.type,CLUSTER-IP:.spec.clusterIP,"
+                            "PORTS:.spec.ports[*].port,AGE:.metadata.creationTimestamp"])
+    svcs = []
+    for line in (svc_raw or "").strip().splitlines():
+        parts = line.split(None, 5)
+        if len(parts) >= 6:
+            svcs.append({
+                "name": parts[0], "namespace": parts[1], "type": parts[2],
+                "cluster_ip": parts[3], "ports": parts[4], "age": parts[5],
+            })
+
+    deploy_raw = _run_kubectl(["get", "deployments", "--all-namespaces", "--no-headers",
+                               "-o", "custom-columns=NAME:.metadata.name,NAMESPACE:.metadata.namespace,"
+                               "READY:.status.readyReplicas,UP-TO-DATE:.status.updatedReplicas,"
+                               "AVAILABLE:.status.availableReplicas,DESIRED:.spec.replicas,"
+                               "AGE:.metadata.creationTimestamp"])
+    deploys = []
+    for line in (deploy_raw or "").strip().splitlines():
+        parts = line.split(None, 6)
+        if len(parts) >= 7:
+            ready_count = parts[2] if parts[2] != "<none>" else "0"
+            desired_count = parts[5] if parts[5] != "<none>" else "1"
+            deploys.append({
+                "name": parts[0], "namespace": parts[1],
+                "ready": f"{ready_count}/{desired_count}",
+                "up_to_date": parts[3] if parts[3] != "<none>" else "0",
+                "available": parts[4] if parts[4] != "<none>" else "0",
+                "desired": desired_count,
+                "age": parts[6],
+            })
+
+    node_raw = _run_kubectl(["get", "nodes", "--no-headers",
+                             "-o", "custom-columns=NAME:.metadata.name,"
+                             "STATUS:.status.conditions[?(@.type=='Ready')].status,"
+                             "ROLES:.metadata.labels.node-role\\.kubernetes\\.io/control-plane,"
+                             "VERSION:.status.nodeInfo.kubeletVersion,"
+                             "OS:.status.nodeInfo.osImage,ARCH:.status.nodeInfo.architecture,"
+                             "AGE:.metadata.creationTimestamp"])
+    nodes = []
+    for line in (node_raw or "").strip().splitlines():
+        parts = line.split(None, 6)
+        if len(parts) >= 7:
+            status_val = "Ready" if parts[1] == "True" else "NotReady"
+            role_val = "control-plane" if parts[2] != "<none>" else "worker"
+            nodes.append({
+                "name": parts[0], "status": status_val, "roles": role_val,
+                "version": parts[3], "os": parts[4], "arch": parts[5], "age": parts[6],
+            })
+
+    ns_raw = _run_kubectl(["get", "namespaces", "--no-headers",
+                           "-o", "custom-columns=NAME:.metadata.name,"
+                           "STATUS:.status.phase,AGE:.metadata.creationTimestamp"])
+    nses = []
+    for line in (ns_raw or "").strip().splitlines():
+        parts = line.split(None, 2)
+        if len(parts) >= 3:
+            nses.append({"name": parts[0], "status": parts[1], "age": parts[2]})
+
+    return {
+        "pods": pods,
+        "services": svcs,
+        "deployments": deploys,
+        "nodes": nodes,
+        "namespaces": nses,
     }
