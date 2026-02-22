@@ -1,6 +1,6 @@
-# CS2 Skin AI Intelligence
+# AKS Edge Demo: CS2 Cosmetic Investment AI
 
-Professional CS2 skin investment intelligence app — an AKS Edge Essentials demo.
+Professional CS2 skin investment intelligence app — an AKS Edge demo.
 
 ## What it does
 - Pulls real-time CS2 prices from Steam Community Market (`priceoverview`).
