@@ -5,19 +5,22 @@ When you deploy `k8s/*.yaml` on AKS Edge Essentials, the cluster creates:
 
 - `1 x Deployment`: `cs2-skin-ai`
 - `1 x Pod` (from Deployment, `replicas: 1`)
-- `1 x Service (ClusterIP)`: `cs2-skin-ai` (`80 -> 8000`)
+- `1 x Service (NodePort)`: `cs2-skin-ai` (`80 -> 8000`, NodePort `30080`)
 - `1 x ConfigMap`: `cs2-skin-ai-config`
 - `1 x PVC`: `cs2-skin-ai-pvc` (`1Gi`, `ReadWriteOnce`)
+- `1 x ServiceAccount`: `cs2-skin-ai`
+- `1 x ClusterRole / ClusterRoleBinding`: `cs2-skin-ai`
 
-No Ingress is created by default. Access is typically via:
+No Ingress is created by default. Access is via:
 
-- `kubectl port-forward svc/cs2-skin-ai 8000:80`
+- NodePort: `http://localhost:30080`
+- Fallback: `kubectl port-forward svc/cs2-skin-ai 8000:80`
 
 ## High-Level Architecture
 
 ```mermaid
 flowchart LR
-    U["Browser localhost:8000"] -->|port-forward| SVC["Service cs2-skin-ai:80"]
+    U["Browser localhost:30080"] -->|NodePort| SVC["Service cs2-skin-ai:80"]
     SVC --> POD["Pod cs2-skin-ai"]
 
     subgraph PODC["Container api - FastAPI + APScheduler"]
@@ -66,6 +69,7 @@ kubectl port-forward svc/cs2-skin-ai 8000:80
 
 Option B (`kubectl apply`):
 ```bash
+kubectl apply -f k8s/rbac.yaml
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/deployment-no-pv.yaml
 kubectl apply -f k8s/service.yaml
@@ -83,6 +87,7 @@ kubectl port-forward svc/cs2-skin-ai 8000:80
 
 Option B (`kubectl apply`):
 ```bash
+kubectl apply -f k8s/rbac.yaml
 kubectl apply -f k8s/pvc.yaml
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/deployment.yaml
@@ -114,5 +119,6 @@ kubectl logs deploy/cs2-skin-ai --tail=200
 - Single-service architecture (FastAPI monolith) in one pod.
 - Internal scheduler performs market ingestion.
 - SQLite for persistence, mounted at `/data`.
-- ClusterIP service + local port-forward for access.
+- NodePort service (port 30080) for direct access.
 - Easily switched between persistent (PVC) and ephemeral (no-PV) modes.
+- Container image auto-published to GHCR via GitHub Actions CI/CD.

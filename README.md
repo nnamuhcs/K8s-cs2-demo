@@ -38,7 +38,7 @@ kubectl rollout status deployment/cs2-skin-ai
 
 Image: `ghcr.io/nnamuhcs/k8s-cs2-demo:latest`
 
-Open [http://localhost:30080](http://localhost:30080)
+Open [http://localhost:30080](http://localhost:30080) (NodePort) or use `kubectl port-forward svc/cs2-skin-ai 8000:80` as fallback.
 
 ## Quick Start (Local Dev)
 ```bash
@@ -86,6 +86,7 @@ kubectl port-forward svc/cs2-skin-ai 8000:80
 
 Option B (`kubectl apply`):
 ```bash
+kubectl apply -f k8s/rbac.yaml
 kubectl apply -f k8s/pvc.yaml
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/deployment.yaml
@@ -111,6 +112,7 @@ kubectl port-forward svc/cs2-skin-ai 8000:80
 
 Option B (`kubectl apply`):
 ```bash
+kubectl apply -f k8s/rbac.yaml
 kubectl apply -f k8s/configmap.yaml
 kubectl apply -f k8s/deployment-no-pv.yaml
 kubectl apply -f k8s/service.yaml
@@ -123,7 +125,7 @@ kubectl port-forward svc/cs2-skin-ai 8000:80
 ```
 
 ## Architecture Doc (Slides)
-- `/Users/verve/Documents/demo-cs2/docs/ARCHITECTURE.md`
+- `docs/ARCHITECTURE.md`
 
 `deploy_local_k8s.sh` supports mode argument:
 - `pv` (default): uses `k8s/pvc.yaml` + `k8s/deployment.yaml`

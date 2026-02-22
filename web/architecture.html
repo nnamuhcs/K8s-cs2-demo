@@ -30,7 +30,7 @@
         <div class="arch-grid">
           <article class="arch-card">
             <h3>User Layer</h3>
-            <p>Browser reaches app via `kubectl port-forward svc/cs2-skin-ai 8000:80`.</p>
+            <p>Browser reaches app via NodePort at `http://localhost:30080`.</p>
           </article>
           <article class="arch-card">
             <h3>AKS Edge Layer</h3>
@@ -71,7 +71,7 @@
             <h3>Network / Exposition</h3>
             <ul>
               <li><img src="/web/icons/k8s/ingress.svg" alt="" />Ingress (optional)</li>
-              <li><img src="/web/icons/k8s/service.svg" alt="" />Service (ClusterIP)</li>
+              <li><img src="/web/icons/k8s/service.svg" alt="" />Service (NodePort 30080)</li>
               <li><img src="/web/icons/k8s/endpoint.svg" alt="" />Endpoint / Port-Forward</li>
             </ul>
           </article>
@@ -97,7 +97,7 @@
             <h3>External</h3>
             <ul>
               <li><span class="chip">Market</span> Steam Market API</li>
-              <li><span class="chip">User</span> Browser (localhost:8000)</li>
+              <li><span class="chip">User</span> Browser (localhost:30080)</li>
             </ul>
           </article>
           <article class="kube-clean-card kube-links-integrated">
